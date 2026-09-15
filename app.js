@@ -1,229 +1,140 @@
-const KEY = "ferienhaus-app-v1";
-
+const STORAGE_KEY = "ferienhausmatrix-v2";
 const defaultCriteria = [
-  {id:"drive",name:"Fahrtzeit",type:"time",unit:"h",weight:20,direction:"lower",green:150,yellow:210,red:300},
-  {id:"distance",name:"Entfernung",type:"number",unit:"km",weight:0,direction:"lower",green:180,yellow:260,red:350},
-  {id:"area",name:"Wohnfläche",type:"number",unit:"m²",weight:20,direction:"higher",green:90,yellow:75,red:60},
-  {id:"bath",name:"Badezimmer",type:"number",unit:"",weight:15,direction:"higher",green:2,yellow:1,red:0},
-  {id:"sauna",name:"Sauna",type:"boolean",unit:"",weight:15,direction:"higher",green:1,yellow:0,red:0},
-  {id:"pool",name:"Schwimmbad im Park",type:"boolean",unit:"",weight:10,direction:"higher",green:1,yellow:0,red:0},
-  {id:"cost",name:"Kosten",type:"currency",unit:"€",weight:20,direction:"lower",green:1500,yellow:1700,red:1900}
+  {id:"drive",name:"Fahrtzeit",type:"time",direction:"lower",weight:20,green:120,yellow:180,red:240},
+  {id:"area",name:"Wohnfläche",type:"number",direction:"higher",weight:20,green:90,yellow:75,red:60},
+  {id:"bath",name:"Anzahl Badezimmer",type:"number",direction:"higher",weight:15,green:2,yellow:1,red:0},
+  {id:"sauna",name:"Sauna",type:"boolean",direction:"higher",weight:15,green:1,yellow:0,red:0},
+  {id:"pool",name:"Schwimmbad im Park",type:"boolean",direction:"higher",weight:10,green:1,yellow:0,red:0},
+  {id:"cost",name:"Kosten",type:"currency",direction:"lower",weight:20,green:1500,yellow:1700,red:1900}
 ];
+let state = load();
+let editingHomeId = null;
+let deferredInstallPrompt = null;
 
-let state = loadState();
-let editingId = null;
-
-function loadState(){
+function load(){
   try {
-    const raw = localStorage.getItem(KEY);
-    if(raw) return JSON.parse(raw);
+    const s=JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if(s && Array.isArray(s.criteria) && Array.isArray(s.homes)) return s;
   } catch(e){}
-  return {criteria: structuredClone(defaultCriteria), houses:[], changed:new Date().toISOString()};
+  return {criteria:structuredClone(defaultCriteria),homes:[]};
 }
-function save(){ state.changed = new Date().toISOString(); localStorage.setItem(KEY, JSON.stringify(state)); render(); }
-function uid(){ return crypto.randomUUID ? crypto.randomUUID() : Date.now()+"-"+Math.random(); }
-function esc(v=""){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
-function formatEuro(v){return v===""||v==null?"–":new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Number(v));}
-function formatValue(c,v){
-  if(v===""||v==null) return "–";
+function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); renderAll();}
+function uid(){return crypto.randomUUID ? crypto.randomUUID() : Date.now()+"-"+Math.random();}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
+function fmt(c,v){
+  if(v===null||v===undefined||v==="") return "—";
+  if(c.type==="time"){let n=Number(v),h=Math.floor(n/60),m=Math.round(n%60);return `${h}:${String(m).padStart(2,"0")} h`;}
+  if(c.type==="currency") return new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Number(v));
   if(c.type==="boolean") return Number(v) ? "Ja" : "Nein";
-  if(c.type==="currency") return formatEuro(v);
-  if(c.type==="time") return formatTime(Number(v));
-  return `${v}${c.unit ? " "+c.unit : ""}`;
+  return `${v}`;
 }
-function formatTime(min){
-  min=Number(min)||0; const h=Math.floor(min/60), m=min%60;
-  return `${h}:${String(m).padStart(2,"0")} h`;
+function status(c,v){
+  if(v===""||v===null||v===undefined) return "empty";
+  if(c.type==="boolean") return Number(v) ? "green" : "red";
+  const n=Number(v);
+  if(!Number.isFinite(n)) return "empty";
+  if(c.direction==="higher") return n>=c.green?"green":n>=c.yellow?"yellow":n>=c.red?"red":"bad";
+  return n<=c.green?"green":n<=c.yellow?"yellow":n<=c.red?"red":"bad";
 }
-function scoreFor(c,v){
-  if(v===""||v==null||isNaN(Number(v))) return null;
-  let n=Number(v);
-  if(c.type==="boolean") return n ? 10 : 0;
-  if(c.direction==="higher"){
-    if(n>=c.green) return 10;
-    if(n>=c.yellow) return 7;
-    if(n>c.red) return 4;
-    return 0;
-  } else {
-    if(n<=c.green) return 10;
-    if(n<=c.yellow) return 7;
-    if(n<=c.red) return 4;
-    return 0;
-  }
+function points(c,v){
+  if(v===""||v===null||v===undefined) return 0;
+  if(c.type==="boolean") return Number(v)?10:0;
+  const s=status(c,v);
+  return s==="green"?10:s==="yellow"?7:s==="red"?4:0;
 }
-function trafficFor(c,v){
-  if(v===""||v==null||isNaN(Number(v))) return "";
-  let n=Number(v);
-  if(c.type==="boolean") return n ? "traffic-green":"traffic-red";
-  if(c.direction==="higher") return n>=c.green?"traffic-green":n>=c.yellow?"traffic-yellow":n>c.red?"traffic-red":"traffic-red";
-  return n<=c.green?"traffic-green":n<=c.yellow?"traffic-yellow":n<=c.red?"traffic-red":"traffic-red";
+function score(home){
+  const totalWeight=state.criteria.reduce((a,c)=>a+Number(c.weight||0),0);
+  if(!totalWeight) return 0;
+  return state.criteria.reduce((sum,c)=>sum+points(c,home.values?.[c.id])*(Number(c.weight||0)/totalWeight),0);
 }
-function totalScore(h){
-  let weighted=0,totalWeight=0;
-  state.criteria.forEach(c=>{
-    if(!c.weight) return;
-    const s=scoreFor(c,h.values?.[c.id]);
-    if(s!=null){weighted += s*c.weight; totalWeight += c.weight;}
-  });
-  return totalWeight ? weighted/totalWeight : 0;
-}
-function render(){
-  document.getElementById("criteriaCount").textContent=state.criteria.length;
-  document.getElementById("houseCount").textContent=state.houses.length;
-  const avg=state.houses.length ? state.houses.reduce((a,h)=>a+totalScore(h),0)/state.houses.length : 0;
-  document.getElementById("avgScore").textContent=state.houses.length ? avg.toFixed(1) : "–";
-  const best=[...state.houses].sort((a,b)=>totalScore(b)-totalScore(a))[0];
-  document.getElementById("bestScore").textContent=best ? totalScore(best).toFixed(1) : "–";
-  document.getElementById("bestName").textContent=best ? `${best.park} · ${best.name}` : "Noch keine Häuser";
-  document.getElementById("lastChanged").textContent=state.changed ? new Date(state.changed).toLocaleDateString("de-DE") : "–";
-  renderHouses();
-}
-function renderHouses(){
-  const grid=document.getElementById("housesGrid"), empty=document.getElementById("emptyState");
-  const q=document.getElementById("searchInput").value.toLowerCase();
+function renderAll(){renderOverview();renderCriteria();document.getElementById("homeCount").textContent=state.homes.length;}
+function renderOverview(){
+  const grid=document.getElementById("homeGrid"), q=document.getElementById("searchInput").value.toLowerCase();
+  let homes=state.homes.filter(h=>h.name.toLowerCase().includes(q));
   const sort=document.getElementById("sortSelect").value;
-  let houses=state.houses.filter(h=>(h.park+" "+h.name).toLowerCase().includes(q));
-  houses.sort((a,b)=>{
-    if(sort==="score") return totalScore(b)-totalScore(a);
-    if(sort==="name") return a.name.localeCompare(b.name,"de");
-    if(sort==="costAsc") return Number(a.values?.cost||Infinity)-Number(b.values?.cost||Infinity);
-    return Number(b.values?.cost||0)-Number(a.values?.cost||0);
+  homes.sort((a,b)=>sort==="score"?score(b)-score(a):sort==="name"?a.name.localeCompare(b.name,"de"):sort==="cost"?Number(a.values?.cost||Infinity)-Number(b.values?.cost||Infinity):Number(a.values?.drive||Infinity)-Number(b.values?.drive||Infinity));
+  if(!homes.length){grid.innerHTML='<div class="empty-state glass"><h3>Noch keine Ferienhäuser</h3><p>Lege dein erstes Ferienhaus an und beginne mit dem Vergleich.</p><button class="primary" onclick="openHome()">+ Ferienhaus hinzufügen</button></div>';return;}
+  grid.innerHTML=homes.map((h,i)=>{
+    const sc=score(h), rank=i+1;
+    const rows=state.criteria.slice(0,6).map(c=>`<div class="mini-row"><span>${esc(c.name)}</span><strong class="traffic ${status(c,h.values?.[c.id])}">${esc(fmt(c,h.values?.[c.id]))}</strong></div>`).join("");
+    return `<article class="home-card glass"><div class="rank">#${rank}</div><div class="card-head"><div><h3>${esc(h.name)}</h3><span class="muted">Gesamtwertung</span></div><div class="score">${sc.toFixed(1)}<small>/10</small></div></div><div class="mini-list">${rows}</div><div class="card-actions"><button onclick="openDetail('${h.id}')">Details</button><button onclick="editHome('${h.id}')">Bearbeiten</button><button class="danger" onclick="deleteHome('${h.id}')">Löschen</button></div></article>`;
+  }).join("");
+}
+function renderCriteria(){
+  const list=document.getElementById("criteriaList");
+  list.innerHTML=state.criteria.map(c=>`<article class="criterion glass" data-id="${c.id}">
+    <div class="criterion-main"><input class="criterion-name" value="${esc(c.name)}">
+    <div class="criterion-meta"><select class="criterion-type"><option value="number" ${c.type==="number"?"selected":""}>Zahl</option><option value="time" ${c.type==="time"?"selected":""}>Zeit (Minuten)</option><option value="currency" ${c.type==="currency"?"selected":""}>Währung</option><option value="boolean" ${c.type==="boolean"?"selected":""}>Ja/Nein</option></select>
+    <select class="criterion-direction"><option value="higher" ${c.direction==="higher"?"selected":""}>Höher ist besser</option><option value="lower" ${c.direction==="lower"?"selected":""}>Niedriger ist besser</option></select>
+    <label>Gewichtung <input class="criterion-weight" type="number" min="0" max="100" value="${c.weight}"> %</label></div></div>
+    <div class="thresholds"><label>Grün bis <input class="green-threshold" type="number" step="any" value="${c.green}"></label><label>Gelb bis <input class="yellow-threshold" type="number" step="any" value="${c.yellow}"></label><label>Rot bis <input class="red-threshold" type="number" step="any" value="${c.red}"></label></div>
+    <button class="danger delete-criterion" type="button">Löschen</button></article>`).join("");
+  list.querySelectorAll(".criterion").forEach(el=>{
+    const id=el.dataset.id;
+    el.querySelectorAll("input,select").forEach(inp=>inp.addEventListener("change",()=>{
+      const c=state.criteria.find(x=>x.id===id);
+      c.name=el.querySelector(".criterion-name").value.trim()||"Kriterium";
+      c.type=el.querySelector(".criterion-type").value;c.direction=el.querySelector(".criterion-direction").value;
+      c.weight=Number(el.querySelector(".criterion-weight").value)||0;c.green=Number(el.querySelector(".green-threshold").value)||0;c.yellow=Number(el.querySelector(".yellow-threshold").value)||0;c.red=Number(el.querySelector(".red-threshold").value)||0;
+      if(c.type==="boolean"){c.green=1;c.yellow=0;c.red=0;}
+      save();
+    }));
+    el.querySelector(".delete-criterion").onclick=()=>{if(confirm("Kriterium wirklich löschen? Die dazugehörigen Werte der Ferienhäuser werden ebenfalls entfernt.")){state.criteria=state.criteria.filter(x=>x.id!==id);state.homes.forEach(h=>delete h.values?.[id]);save();}};
   });
-  empty.style.display=state.houses.length?"none":"block";
-  grid.innerHTML=houses.map(h=>{
-    const score=totalScore(h);
-    const active=state.criteria.filter(c=>h.values?.[c.id]!=="" && h.values?.[c.id]!=null);
-    return `<article class="house-card glass" data-id="${h.id}">
-      <div class="house-head">
-        <div><div class="eyebrow">${esc(h.park)}</div><h3>${esc(h.name)}</h3></div>
-        <div class="score">${score.toFixed(1)}<small>/10</small></div>
-      </div>
-      <div class="chips">${h.period?`<span class="chip">📅 ${esc(h.period)}</span>`:""}${h.persons?`<span class="chip">👥 ${esc(h.persons)}</span>`:""}<span class="chip">${active.length}/${state.criteria.length} Werte</span></div>
-      <div class="value-grid">
-        ${state.criteria.map(c=>`<div class="value ${trafficFor(c,h.values?.[c.id])}"><span class="label">${esc(c.name)}</span><strong>${esc(formatValue(c,h.values?.[c.id]))}</strong></div>`).join("")}
-      </div>
-    </article>`;
-  }).join("");
-  grid.querySelectorAll(".house-card").forEach(el=>el.onclick=()=>openDetail(el.dataset.id));
+  const total=state.criteria.reduce((a,c)=>a+Number(c.weight||0),0);
+  list.insertAdjacentHTML("afterbegin",`<div class="weight-total ${Math.abs(total-100)<.01?"ok":"warn"} glass">Gewichtung gesamt: <strong>${total}%</strong>${Math.abs(total-100)<.01?"":" – bitte auf 100 % anpassen."}</div>`);
 }
-function openHouse(id=null){
-  editingId=id; const h=id?state.houses.find(x=>x.id===id):null;
-  document.getElementById("houseModalTitle").textContent=h?"Ferienhaus bearbeiten":"Neues Ferienhaus";
-  document.getElementById("houseId").value=id||"";
-  ["park","houseName","period","persons","notes"].forEach(k=>document.getElementById(k).value=h?.[k]||"");
-  document.getElementById("criteriaInputs").innerHTML=state.criteria.map(c=>{
-    const v=h?.values?.[c.id] ?? "";
-    let input=c.type==="boolean"
-      ? `<select data-cid="${c.id}"><option value="">Nicht angegeben</option><option value="1" ${Number(v)===1?"selected":""}>Ja</option><option value="0" ${v!==""&&Number(v)===0?"selected":""}>Nein</option></select>`
-      : `<input data-cid="${c.id}" type="number" step="any" value="${esc(v)}" placeholder="${c.type==="time"?"Minuten":""}">`;
-    return `<div class="criteria-input"><label>${esc(c.name)}${c.unit?" · "+esc(c.unit):""}</label>${input}</div>`;
+function openHome(id=null){
+  editingHomeId=id; const h=id?state.homes.find(x=>x.id===id):null;
+  document.getElementById("dialogTitle").textContent=id?"Ferienhaus bearbeiten":"Ferienhaus hinzufügen";
+  document.getElementById("homeName").value=h?.name||"";
+  document.getElementById("homeFields").innerHTML=state.criteria.map(c=>{
+    const val=h?.values?.[c.id]??"";
+    if(c.type==="boolean") return `<label>${esc(c.name)}<select data-cid="${c.id}"><option value="">—</option><option value="1" ${Number(val)===1?"selected":""}>Ja</option><option value="0" ${val!==""&&Number(val)===0?"selected":""}>Nein</option></select></label>`;
+    const placeholder=c.type==="time"?"Minuten, z. B. 165":c.type==="currency"?"z. B. 1649":"Wert";
+    return `<label>${esc(c.name)}<input data-cid="${c.id}" type="number" step="any" value="${esc(val)}" placeholder="${placeholder}"></label>`;
   }).join("");
-  openModal("houseModal");
+  document.getElementById("homeDialog").showModal();
 }
-function saveHouse(e){
+function saveHome(e){
   e.preventDefault();
-  const id=document.getElementById("houseId").value||uid();
-  const existing=state.houses.find(h=>h.id===id);
-  const values={};
-  document.querySelectorAll("#criteriaInputs [data-cid]").forEach(el=>values[el.dataset.cid]=el.value);
-  const h={id,park:document.getElementById("park").value.trim(),name:document.getElementById("houseName").value.trim(),period:document.getElementById("period").value.trim(),persons:document.getElementById("persons").value,notes:document.getElementById("notes").value.trim(),values};
-  if(existing) Object.assign(existing,h); else state.houses.push(h);
-  save(); closeModal("houseModal"); toast("Ferienhaus gespeichert");
+  const name=document.getElementById("homeName").value.trim(); if(!name)return;
+  const values={};document.querySelectorAll("#homeFields [data-cid]").forEach(x=>{if(x.value!=="")values[x.dataset.cid]=x.value;});
+  if(editingHomeId){const h=state.homes.find(x=>x.id===editingHomeId);h.name=name;h.values=values;}
+  else state.homes.push({id:uid(),name,values});
+  document.getElementById("homeDialog").close();save();
 }
 function openDetail(id){
-  const h=state.houses.find(x=>x.id===id); if(!h)return;
-  document.getElementById("detailTitle").textContent=h.name;
-  document.getElementById("detailContent").innerHTML=`
-    <div class="chips"><span class="chip">${esc(h.park)}</span>${h.period?`<span class="chip">📅 ${esc(h.period)}</span>`:""}${h.persons?`<span class="chip">👥 ${esc(h.persons)} Personen</span>`:""}</div>
-    <table class="detail-table"><tbody>${state.criteria.map(c=>{
-      const v=h.values?.[c.id], s=scoreFor(c,v);
-      return `<tr class="${trafficFor(c,v)}"><td>${esc(c.name)}</td><td>${esc(formatValue(c,v))}</td><td class="points">${s==null?"–":s.toFixed(1)+" Punkte"}</td></tr>`;
-    }).join("")}</tbody></table>
-    ${h.notes?`<div class="value" style="margin-top:12px"><span class="label">Notizen</span><div style="margin-top:6px;white-space:pre-wrap">${esc(h.notes)}</div></div>`:""}
-    <div class="modal-actions"><button class="btn ghost" id="deleteHouseBtn">Löschen</button><button class="btn primary" id="editHouseBtn">Bearbeiten</button></div>`;
-  openModal("detailModal");
-  document.getElementById("editHouseBtn").onclick=()=>{closeModal("detailModal");openHouse(id)};
-  document.getElementById("deleteHouseBtn").onclick=()=>{if(confirm("Dieses Ferienhaus wirklich löschen?")){state.houses=state.houses.filter(x=>x.id!==id);save();closeModal("detailModal");toast("Ferienhaus gelöscht")}};
+  const h=state.homes.find(x=>x.id===id);if(!h)return;
+  document.getElementById("detailContent").innerHTML=`<div class="eyebrow">Bewertung</div><h2>${esc(h.name)}</h2><div class="detail-score">${score(h).toFixed(1)}<small>/10</small></div><div class="detail-table">${state.criteria.map(c=>`<div class="detail-row"><div><strong>${esc(c.name)}</strong><span>${c.weight}% Gewichtung</span></div><div class="actual">${esc(fmt(c,h.values?.[c.id]))}</div><div class="points traffic ${status(c,h.values?.[c.id])}">${points(c,h.values?.[c.id]).toFixed(0)} Punkte</div></div>`).join("")}</div>`;
+  document.getElementById("detailDialog").showModal();
 }
-function openMatrix(){
-  renderCriteriaEditor(); openModal("matrixModal");
-}
-function renderCriteriaEditor(){
-  const box=document.getElementById("criteriaEditor");
-  box.innerHTML=state.criteria.map((c,i)=>`
-    <div class="criteria-row" data-index="${i}">
-      <div class="criteria-top">
-        <label>Name<input data-field="name" value="${esc(c.name)}"></label>
-        <label>Gewichtung %<input data-field="weight" type="number" min="0" max="100" step="1" value="${c.weight}"></label>
-        <label>Typ<select data-field="type">
-          ${["number","time","currency","boolean"].map(t=>`<option value="${t}" ${c.type===t?"selected":""}>${({number:"Zahl",time:"Zeit",currency:"Geld",boolean:"Ja/Nein"})[t]}</option>`).join("")}
-        </select></label>
-        <button class="delete-btn" data-delete="${i}">Löschen</button>
-      </div>
-      ${c.type==="boolean"?"":`<div class="criteria-bottom">
-        <label class="mini">Einheit<input data-field="unit" value="${esc(c.unit)}"></label>
-        <label class="mini">Richtung<select data-field="direction"><option value="higher" ${c.direction==="higher"?"selected":""}>Höher besser</option><option value="lower" ${c.direction==="lower"?"selected":""}>Niedriger besser</option></select></label>
-        <label class="mini">🟢 Grenze<input data-field="green" type="number" step="any" value="${c.green}"></label>
-        <label class="mini">🟡 Grenze<input data-field="yellow" type="number" step="any" value="${c.yellow}"></label>
-        <label class="mini">🔴 Grenze<input data-field="red" type="number" step="any" value="${c.red}"></label>
-        <div class="mini" style="align-self:center">Punkte: 10 / 7 / 4 / 0</div>
-      </div>`}
-    </div>`).join("");
-  box.querySelectorAll("[data-delete]").forEach(btn=>btn.onclick=()=>{if(state.criteria.length<=1)return toast("Mindestens ein Kriterium behalten");state.criteria.splice(Number(btn.dataset.delete),1);renderCriteriaEditor()});
-}
-function readMatrixEditor(){
-  document.querySelectorAll(".criteria-row").forEach(row=>{
-    const c=state.criteria[Number(row.dataset.index)];
-    row.querySelectorAll("[data-field]").forEach(el=>{
-      const f=el.dataset.field; c[f]=["weight","green","yellow","red"].includes(f)?Number(el.value):el.value;
-    });
-    if(c.type==="boolean"){c.unit="";c.direction="higher";c.green=1;c.yellow=0;c.red=0;}
-  });
-}
-function saveMatrix(){
-  readMatrixEditor();
-  const sum=state.criteria.reduce((a,c)=>a+Number(c.weight||0),0);
-  if(Math.abs(sum-100)>0.001){toast(`Gewichtungen ergeben ${sum} %. Bitte auf 100 % bringen.`);return;}
-  save(); closeModal("matrixModal"); toast("Bewertungsmatrix gespeichert");
-}
+function deleteHome(id){if(confirm("Ferienhaus wirklich löschen?")){state.homes=state.homes.filter(h=>h.id!==id);save();}}
 function exportData(matrixOnly=false){
-  const payload=matrixOnly?{version:1,type:"matrix",criteria:state.criteria}:{version:1,type:"full-backup",exportedAt:new Date().toISOString(),criteria:state.criteria,houses:state.houses};
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=matrixOnly?"bewertungsmatrix.json":"ferienhaus-backup.json"; a.click(); URL.revokeObjectURL(a.href);
-  toast(matrixOnly?"Matrix exportiert":"Backup exportiert");
+  const data=matrixOnly?{version:2,type:"matrix",criteria:state.criteria}:{version:2,type:"full",criteria:state.criteria,homes:state.homes};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download=matrixOnly?"ferienhausmatrix-matrix.json":"ferienhausmatrix-backup.json";a.click();URL.revokeObjectURL(url);
 }
-function importFile(file,matrixOnly=false){
-  const r=new FileReader(); r.onload=()=>{
-    try{
-      const p=JSON.parse(r.result);
-      if(matrixOnly){
-        if(!Array.isArray(p.criteria)) throw Error();
-        state.criteria=p.criteria; save(); renderCriteriaEditor(); toast("Matrix importiert");
-      } else {
-        if(!Array.isArray(p.criteria)||!Array.isArray(p.houses)) throw Error();
-        state.criteria=p.criteria; state.houses=p.houses; save(); toast("Backup importiert");
-      }
-    }catch(e){toast("Datei konnte nicht importiert werden.")} 
-  }; r.readAsText(file);
+function importData(file){
+  const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d.criteria))throw Error();
+    if(d.type==="matrix"){state.criteria=d.criteria;}
+    else if(Array.isArray(d.homes)){state.criteria=d.criteria;state.homes=d.homes;}
+    else throw Error();save();alert("Import erfolgreich.");}catch(e){alert("Die Datei konnte nicht importiert werden.");}};r.readAsText(file);
 }
-function openModal(id){document.getElementById(id).classList.add("open")}
-function closeModal(id){document.getElementById(id).classList.remove("open")}
-let toastTimer; function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2600)}
-
-document.getElementById("addHouseBtn").onclick=()=>openHouse();
-document.getElementById("emptyAddBtn").onclick=()=>openHouse();
-document.getElementById("houseForm").onsubmit=saveHouse;
-document.getElementById("matrixBtn").onclick=openMatrix;
-document.getElementById("saveMatrixBtn").onclick=saveMatrix;
-document.getElementById("addCriterionBtn").onclick=()=>{readMatrixEditor();state.criteria.push({id:uid(),name:"Neues Kriterium",type:"number",unit:"",weight:0,direction:"higher",green:10,yellow:5,red:0});renderCriteriaEditor()};
-document.getElementById("exportBtn").onclick=()=>exportData(false);
-document.getElementById("matrixExportBtn").onclick=()=>{readMatrixEditor();exportData(true)};
-document.getElementById("importBtn").onclick=()=>document.getElementById("fileInput").click();
-document.getElementById("fileInput").onchange=e=>e.target.files[0]&&importFile(e.target.files[0],false);
-document.getElementById("matrixImportBtn").onclick=()=>document.getElementById("matrixFileInput").click();
-document.getElementById("matrixFileInput").onchange=e=>e.target.files[0]&&importFile(e.target.files[0],true);
-document.getElementById("searchInput").oninput=renderHouses;
-document.getElementById("sortSelect").onchange=renderHouses;
-document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
-document.querySelectorAll(".modal-backdrop").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("open")}));
-render();
+document.getElementById("addHomeBtn").onclick=()=>openHome();
+document.getElementById("homeForm").addEventListener("submit",saveHome);
+document.getElementById("cancelHome").onclick=()=>document.getElementById("homeDialog").close();
+document.getElementById("closeHome").onclick=()=>document.getElementById("homeDialog").close();
+document.getElementById("closeDetail").onclick=()=>document.getElementById("detailDialog").close();
+document.getElementById("searchInput").oninput=renderOverview;document.getElementById("sortSelect").onchange=renderOverview;
+document.getElementById("exportBtn").onclick=()=>exportData(false);document.getElementById("exportFullBtn").onclick=()=>exportData(false);document.getElementById("exportMatrixBtn").onclick=()=>exportData(true);
+document.getElementById("importInput").onchange=e=>e.target.files[0]&&importData(e.target.files[0]);
+document.querySelectorAll(".tab").forEach(btn=>btn.onclick=()=>{document.querySelectorAll(".tab,.tab-panel").forEach(x=>x.classList.remove("active"));btn.classList.add("active");document.getElementById(btn.dataset.tab).classList.add("active");});
+document.getElementById("addCriterionBtn").onclick=()=>{state.criteria.push({id:uid(),name:"Neues Kriterium",type:"number",direction:"higher",weight:0,green:10,yellow:5,red:0});save();document.getElementById("matrix").scrollIntoView();};
+document.getElementById("installBtnSettings").onclick=()=>{if(deferredInstallPrompt){deferredInstallPrompt.prompt();}else document.getElementById("installHint").textContent="Die Installationsfunktion wird vom Browser angeboten, sobald die PWA-Bedingungen erfüllt sind. Unter iPhone/iPad: Teilen → Zum Home-Bildschirm.";
+};
+window.openHome=openHome;window.openDetail=openDetail;window.editHome=openHome;window.deleteHome=deleteHome;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;document.getElementById("installBtn").classList.remove("hidden");});
+document.getElementById("installBtn").onclick=async()=>{if(deferredInstallPrompt){await deferredInstallPrompt.prompt();deferredInstallPrompt=null;document.getElementById("installBtn").classList.add("hidden");}};
+if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost")) navigator.serviceWorker.register("./sw.js").catch(console.warn);
+renderAll();

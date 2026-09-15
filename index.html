@@ -1,128 +1,121 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#f5f7fb">
-  <title>Ferienhaus Bewertung</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="description" content="FerienhausMatrix – persönliche Bewertung und Vergleich von Ferienhäusern.">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icons/icon-192.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icons/icon-192.svg">
+  <link rel="stylesheet" href="./style.css">
+  <title>FerienhausMatrix</title>
 </head>
 <body>
-  <div class="background-orb orb-a"></div>
-  <div class="background-orb orb-b"></div>
-
+  <div class="bg-orb orb-a"></div><div class="bg-orb orb-b"></div>
   <header class="topbar glass">
-    <div class="brand">
-      <div class="brand-icon">⌂</div>
-      <div>
-        <div class="eyebrow">PRIVATE COLLECTION</div>
-        <h1>Ferienhaus Bewertung</h1>
-      </div>
+    <div>
+      <div class="eyebrow">Persönliche Entscheidungshilfe</div>
+      <h1>FerienhausMatrix</h1>
     </div>
-    <div class="top-actions">
-      <button class="btn ghost" id="importBtn">↙ Import</button>
-      <button class="btn ghost" id="exportBtn">↗ Export</button>
-      <button class="btn primary" id="addHouseBtn">＋ Ferienhaus</button>
-      <input type="file" id="fileInput" accept=".json,application/json" hidden>
+    <div class="actions">
+      <button id="installBtn" class="primary hidden">App installieren</button>
+      <button id="exportBtn">Backup exportieren</button>
+      <label class="button">Backup importieren<input id="importInput" type="file" accept=".json,application/json" hidden></label>
     </div>
   </header>
 
-  <main class="container">
-    <section class="hero">
+  <main>
+    <section class="hero glass">
       <div>
-        <div class="eyebrow">DEINE ENTSCHEIDUNGSHILFE</div>
-        <h2>Finde das Ferienhaus,<br><span>das wirklich zu dir passt.</span></h2>
-        <p>Alle echten Werte bleiben sichtbar. Die Matrix berechnet daraus Punkte, Ampeln und eine Gesamtwertung.</p>
+        <span class="pill">100 % lokal</span>
+        <h2>Ferienhäuser objektiv vergleichen.</h2>
+        <p>Bewerte echte Werte, gewichte deine Kriterien und finde schnell deinen Favoriten.</p>
       </div>
-      <div class="hero-score glass">
-        <span>Beste Bewertung</span>
-        <strong id="bestScore">–</strong>
-        <small id="bestName">Noch keine Häuser</small>
+      <div class="hero-stat"><strong id="homeCount">0</strong><span>Ferienhäuser</span></div>
+    </section>
+
+    <nav class="tabs glass">
+      <button class="tab active" data-tab="overview">Übersicht</button>
+      <button class="tab" data-tab="matrix">Bewertungsmatrix</button>
+      <button class="tab" data-tab="settings">Einstellungen</button>
+    </nav>
+
+    <section id="overview" class="tab-panel active">
+      <div class="toolbar glass">
+        <button id="addHomeBtn" class="primary">+ Ferienhaus hinzufügen</button>
+        <input id="searchInput" type="search" placeholder="Ferienhaus suchen …">
+        <select id="sortSelect">
+          <option value="score">Nach Gesamtwertung</option>
+          <option value="name">Nach Name</option>
+          <option value="cost">Nach Kosten</option>
+          <option value="drive">Nach Fahrtzeit</option>
+        </select>
+      </div>
+      <div id="homeGrid" class="home-grid"></div>
+    </section>
+
+    <section id="matrix" class="tab-panel">
+      <div class="section-head">
+        <div><div class="eyebrow">Konfiguration</div><h2>Bewertungsmatrix</h2></div>
+        <button id="addCriterionBtn" class="primary">+ Kriterium</button>
+      </div>
+      <div id="criteriaList" class="criteria-list"></div>
+      <div class="matrix-note glass">Die Gewichtungen müssen zusammen 100 % ergeben. Schwellenwerte und Bewertungsrichtung können jederzeit geändert werden.</div>
+    </section>
+
+    <section id="settings" class="tab-panel">
+      <div class="section-head"><div><div class="eyebrow">Daten & App</div><h2>Einstellungen</h2></div></div>
+      <div class="settings-grid">
+        <div class="glass setting-card">
+          <h3>Datensicherung</h3>
+          <p>Alle Daten bleiben auf diesem Gerät im Browser. Exportiere regelmäßig ein Backup, wenn du die Daten sichern oder auf ein anderes Gerät übertragen möchtest.</p>
+          <div class="row"><button id="exportFullBtn" class="primary">Vollständiges Backup</button><button id="exportMatrixBtn">Nur Matrix exportieren</button></div>
+        </div>
+        <div class="glass setting-card">
+          <h3>App installieren</h3>
+          <p>Wenn dein Browser die Installation unterstützt, kannst du FerienhausMatrix als App auf dem Startbildschirm installieren.</p>
+          <button id="installBtnSettings" class="primary">Installation vorbereiten</button>
+          <p id="installHint" class="muted"></p>
+        </div>
       </div>
     </section>
-
-    <section class="stats-grid">
-      <div class="stat glass"><span>Ferienhäuser</span><strong id="houseCount">0</strong></div>
-      <div class="stat glass"><span>Bewertungsschnitt</span><strong id="avgScore">–</strong></div>
-      <div class="stat glass"><span>Kriterien</span><strong id="criteriaCount">0</strong></div>
-      <div class="stat glass"><span>Letzte Änderung</span><strong id="lastChanged">–</strong></div>
-    </section>
-
-    <section class="toolbar glass">
-      <div class="search-wrap">⌕ <input id="searchInput" placeholder="Ferienpark oder Haus suchen …"></div>
-      <select id="sortSelect">
-        <option value="score">Beste Bewertung</option>
-        <option value="name">Name</option>
-        <option value="costAsc">Kosten aufsteigend</option>
-        <option value="costDesc">Kosten absteigend</option>
-      </select>
-      <button class="btn ghost" id="matrixBtn">⚙ Bewertungsmatrix</button>
-    </section>
-
-    <section id="emptyState" class="empty glass">
-      <div class="empty-icon">⌂</div>
-      <h3>Noch keine Ferienhäuser</h3>
-      <p>Lege dein erstes Haus an und bewerte es anhand deiner Matrix.</p>
-      <button class="btn primary" id="emptyAddBtn">＋ Erstes Ferienhaus anlegen</button>
-    </section>
-
-    <section id="housesGrid" class="houses-grid"></section>
   </main>
 
-  <div class="modal-backdrop" id="houseModal">
-    <div class="modal glass large">
-      <div class="modal-head">
-        <div><div class="eyebrow">FERIENHAUS</div><h3 id="houseModalTitle">Neues Ferienhaus</h3></div>
-        <button class="icon-btn" data-close="houseModal">×</button>
-      </div>
-      <form id="houseForm">
-        <input type="hidden" id="houseId">
-        <div class="form-grid">
-          <label>Ferienpark<input id="park" required placeholder="z. B. Park Nordsee"></label>
-          <label>Haus / Typ<input id="houseName" required placeholder="z. B. Premium 6"></label>
-          <label>Zeitraum<input id="period" placeholder="z. B. 12.–19.10.2026"></label>
-          <label>Personen<input id="persons" type="number" min="1" placeholder="6"></label>
-          <label>Notiz<textarea id="notes" rows="3" placeholder="Besonderheiten …"></textarea></label>
+  <dialog id="homeDialog">
+    <form method="dialog" id="homeForm" class="dialog glass">
+      <button type="button" class="close" id="closeHome">×</button>
+      <div class="eyebrow">Ferienhaus</div>
+      <h2 id="dialogTitle">Ferienhaus hinzufügen</h2>
+      <label>Name<input id="homeName" required placeholder="z. B. Haus am See"></label>
+      <div id="homeFields"></div>
+      <div class="dialog-actions"><button type="button" id="cancelHome">Abbrechen</button><button class="primary" value="default">Speichern</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="detailDialog">
+    <div class="dialog glass"><button type="button" class="close" id="closeDetail">×</button><div id="detailContent"></div></div>
+  </dialog>
+
+  <template id="criterionTemplate">
+    <article class="criterion glass">
+      <div class="criterion-main">
+        <input class="criterion-name" placeholder="Kriterienname">
+        <div class="criterion-meta">
+          <select class="criterion-type"><option value="number">Zahl</option><option value="time">Zeit (Minuten)</option><option value="currency">Währung</option><option value="boolean">Ja/Nein</option></select>
+          <select class="criterion-direction"><option value="higher">Höher ist besser</option><option value="lower">Niedriger ist besser</option></select>
+          <label>Gewichtung <input class="criterion-weight" type="number" min="0" max="100" step="1"> %</label>
         </div>
-        <h4>Werte</h4>
-        <div id="criteriaInputs" class="criteria-inputs"></div>
-        <div class="modal-actions">
-          <button type="button" class="btn ghost" data-close="houseModal">Abbrechen</button>
-          <button type="submit" class="btn primary">Speichern</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div class="modal-backdrop" id="matrixModal">
-    <div class="modal glass large">
-      <div class="modal-head">
-        <div><div class="eyebrow">KONFIGURATION</div><h3>Bewertungsmatrix</h3></div>
-        <button class="icon-btn" data-close="matrixModal">×</button>
       </div>
-      <p class="muted">Gewichtungen müssen zusammen 100 % ergeben. Ampel- und Punktebereiche sind pro Kriterium anpassbar.</p>
-      <div id="criteriaEditor"></div>
-      <div class="modal-actions">
-        <button class="btn ghost" id="addCriterionBtn">＋ Kriterium</button>
-        <button class="btn ghost" id="matrixExportBtn">↗ Matrix exportieren</button>
-        <button class="btn ghost" id="matrixImportBtn">↙ Matrix importieren</button>
-        <button class="btn primary" id="saveMatrixBtn">Matrix speichern</button>
-        <input type="file" id="matrixFileInput" accept=".json,application/json" hidden>
+      <div class="thresholds">
+        <label>Grün bis <input class="green-threshold" type="number" step="any"></label>
+        <label>Gelb bis <input class="yellow-threshold" type="number" step="any"></label>
+        <label>Rot bis <input class="red-threshold" type="number" step="any"></label>
       </div>
-    </div>
-  </div>
+      <button class="danger delete-criterion" type="button">Löschen</button>
+    </article>
+  </template>
 
-  <div class="modal-backdrop" id="detailModal">
-    <div class="modal glass large">
-      <div class="modal-head">
-        <div><div class="eyebrow">DETAILANSICHT</div><h3 id="detailTitle">Ferienhaus</h3></div>
-        <button class="icon-btn" data-close="detailModal">×</button>
-      </div>
-      <div id="detailContent"></div>
-    </div>
-  </div>
-
-  <div class="toast" id="toast"></div>
-  <script src="app.js"></script>
+  <script src="./app.js"></script>
 </body>
 </html>

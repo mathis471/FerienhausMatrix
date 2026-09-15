@@ -1,63 +1,37 @@
-# Ferienhaus Bewertung
+# FerienhausMatrix
 
-Eine lokale Browser-App zur Bewertung und zum Vergleich von Ferienhäusern.
+Eine lokale, installierbare PWA zur Bewertung und zum Vergleich von Ferienhäusern.
 
-## Eigenschaften
+## Funktionen
+- lokale Speicherung im Browser, kein Login und keine Cloud-Synchronisierung
+- installierbare PWA für Desktop und Smartphone
+- Offline-Cache über Service Worker
+- echte Werte bleiben sichtbar und werden zusätzlich mit Punkten bewertet
+- Verkehrslampen für gut / mittel / schlecht
+- frei editierbare Kriterien, Gewichtungen und Schwellenwerte
+- dynamische Kriterien mit Zahl, Zeit, Währung und Ja/Nein
+- Suche, Sortierung, Ranking und Detailansicht
+- vollständiges JSON-Backup und Matrix-Export/Import
 
-- Kein Login
-- Keine Cloud und keine Synchronisation
-- Speicherung lokal im Browser via `localStorage`
-- Tatsächliche Werte bleiben sichtbar
-- Dynamische Bewertungsmatrix
-- Kriterien nachträglich hinzufügen/löschen
-- Frei einstellbare Gewichtungen
-- Ampelsystem
-- Automatische Punkte- und Gesamtbewertung
-- Suche und Sortierung
-- Detailansicht
-- Vollständiges Backup als JSON
-- Bewertungsmatrix separat exportieren/importieren
-- Responsive, Liquid-Glass-inspiriertes Design
+## Wichtige Hinweise
+Die App benötigt für Service Worker/PWA auf einem veröffentlichten Server HTTPS. GitHub Pages erfüllt das.
 
-## Lokal testen
-
-`index.html` kann grundsätzlich direkt geöffnet werden. Für eine lokale Entwicklung ist ein kleiner Webserver besser, z. B.:
-
-```bash
-python -m http.server 8000
-```
-
-Danach `http://localhost:8000` öffnen.
+Fahrtzeit wird intern in Minuten eingegeben, z. B. `165` für `2:45 h`.
 
 ## GitHub Pages
+1. Inhalt dieses Ordners in dein Repository hochladen.
+2. `index.html` muss direkt im Repository-Root liegen.
+3. GitHub: Settings → Pages.
+4. Bei Source: **Deploy from a branch**.
+5. Branch: `main`.
+6. Folder: `/ (root)`.
+7. Save.
+8. Nach der Veröffentlichung die angezeigte Pages-Adresse öffnen.
 
-1. Repository auf GitHub erstellen.
-2. Alle Dateien dieses Projekts hochladen.
-3. In GitHub: **Settings → Pages**
-4. Bei **Build and deployment** `Deploy from a branch` wählen.
-5. Branch `main` und Ordner `/ (root)` auswählen.
-6. Speichern.
+## Installation
+- Android/Chrome/Edge: Auf der Website erscheint bei unterstützten Browsern „App installieren“ bzw. das Installationssymbol.
+- iPhone/iPad: Safari öffnen → Teilen → „Zum Home-Bildschirm“.
+- Desktop: Chrome/Edge können die PWA über das Installationssymbol in der Adressleiste anbieten.
 
-Nach dem Deployment ist die App über deine GitHub-Pages-Adresse erreichbar.
-
-## Wichtig zur Datensicherheit
-
-Die Daten liegen ausschließlich im Browser des jeweiligen Geräts. Löscht du die Browserdaten, können die lokalen Daten verloren gehen. Deshalb regelmäßig über **Export** eine JSON-Sicherung erstellen.
-
-## Bewertungslogik
-
-Für numerische Kriterien:
-- 🟢 = 10 Punkte
-- 🟡 = 7 Punkte
-- 🔴 = 4 Punkte
-- schlechter als rot = 0 Punkte
-
-Bei Ja/Nein:
-- Ja = 10
-- Nein = 0
-
-Die Punkte werden entsprechend der Gewichtung zu einer Gesamtbewertung von 0–10 verrechnet.
-
-### Fahrtzeit
-
-Die Eingabe erfolgt in **Minuten**, z. B. `165` für 2:45 h. In der Übersicht wird automatisch `2:45 h` angezeigt.
+## Daten
+Alle Ferienhausdaten liegen im Local Storage dieses Browsers. Vor dem Löschen von Browserdaten unbedingt ein Backup exportieren.
