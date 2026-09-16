@@ -140,3 +140,84 @@ window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredIns
 document.getElementById("installBtn").onclick=async()=>{if(deferredInstallPrompt){await deferredInstallPrompt.prompt();deferredInstallPrompt=null;document.getElementById("installBtn").classList.add("hidden");}};
 if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost")) navigator.serviceWorker.register("./sw.js").catch(console.warn);
 renderAll();
+/* FerienhausMatrix v3: Ort + Karte */
+const FH_MAP_CACHE="ferienhausmatrix-geocache-v1";
+let fhMap=null, fhMarkers=[];
+
+function fhHomes(){
+  if(typeof state!=="undefined") return state.homes||state.properties||state.houses||[];
+  return [];
+}
+function fhName(h){return h.name||h.title||"Ferienhaus"}
+function fhLoc(h){return h.location||h.ort||h.place||""}
+function fhUrl(h){return h.homeUrl||h.url||""}
+function fhGeo(h){return h.coordinates||h.geo||null}
+function fhCache(){try{return JSON.parse(localStorage.getItem(FH_MAP_CACHE)||"{}")}catch(e){return {}}}
+function fhSaveCache(c){localStorage.setItem(FH_MAP_CACHE,JSON.stringify(c))}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+async function fhGeocode(location){
+  const key=String(location).trim().toLowerCase(), cache=fhCache();
+  if(cache[key]) return cache[key];
+  const u="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=de&q="+encodeURIComponent(location);
+  const r=await fetch(u,{headers:{Accept:"application/json"}});
+  if(!r.ok) throw new Error("Geocoding fehlgeschlagen");
+  const d=await r.json();
+  if(!d.length) throw new Error("Ort nicht gefunden");
+  const p={lat:Number(d[0].lat),lon:Number(d[0].lon),display:d[0].display_name||location};
+  cache[key]=p; fhSaveCache(cache); return p;
+}
+
+async function fhGeocodeAll(){
+  const btn=document.getElementById("geocodeAllBtn"), status=document.getElementById("mapStatus");
+  const homes=fhHomes().filter(h=>fhLoc(h)&&!fhGeo(h));
+  if(!homes.length){status.textContent="Alle eingetragenen Orte sind bereits verortet."; fhRenderMap(); return}
+  btn.disabled=true;
+  for(let i=0;i<homes.length;i++){
+    const h=homes[i]; status.textContent=`Verorte ${fhName(h)} (${i+1}/${homes.length}) …`;
+    try{
+      if(fhGeocodeAll.last) await new Promise(r=>setTimeout(r,1100));
+      const p=await fhGeocode(fhLoc(h)); h.coordinates=p; h.coordinates.sourceLocation=fhLoc(h);
+      fhGeocodeAll.last=Date.now();
+      if(typeof saveState==="function") saveState();
+    }catch(e){status.textContent=`Nicht gefunden: ${fhName(h)} – ${e.message}`}
+  }
+  btn.disabled=false; status.textContent="Verortung abgeschlossen."; fhRenderMap();
+  if(typeof render==="function") render();
+}
+
+function fhInitMap(){
+  const el=document.getElementById("map"), status=document.getElementById("mapStatus");
+  if(!el||typeof L==="undefined"){if(status)status.textContent="Karte konnte nicht geladen werden. Internetverbindung prüfen.";return}
+  if(!fhMap){
+    fhMap=L.map(el).setView([51.2,10.4],6);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'}).addTo(fhMap);
+  }
+  setTimeout(()=>fhMap.invalidateSize(),50); fhRenderMap();
+}
+function fhRenderMap(){
+  if(!fhMap)return;
+  fhMarkers.forEach(m=>fhMap.removeLayer(m)); fhMarkers=[];
+  const bounds=[], homes=fhHomes(); let count=0;
+  homes.forEach(h=>{
+    const g=fhGeo(h); if(!g||!Number.isFinite(+g.lat)||!Number.isFinite(+g.lon))return;
+    count++; const m=L.marker([+g.lat,+g.lon]).addTo(fhMap);
+    const link=fhUrl(h)?`<br><a href="${esc(fhUrl(h))}" target="_blank" rel="noopener">Zum Ferienhaus</a>`:"";
+    m.bindPopup(`<strong>${esc(fhName(h))}</strong><br>${esc(fhLoc(h))}${link}`);
+    fhMarkers.push(m); bounds.push([+g.lat,+g.lon]);
+  });
+  const status=document.getElementById("mapStatus");
+  if(status)status.textContent=count?`${count} Ferienhaus/Ferienhäuser auf der Karte.`:"Noch keine Ferienhäuser verortet.";
+  const um=homes.filter(h=>fhLoc(h)&&!fhGeo(h));
+  const el=document.getElementById("unmappedHomes");
+  if(el)el.textContent=um.length?"Noch nicht verortet: "+um.map(fhName).join(", "):"";
+  if(bounds.length===1)fhMap.setView(bounds[0],10);
+  else if(bounds.length>1)fhMap.fitBounds(bounds,{padding:[30,30]});
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+  document.getElementById("geocodeAllBtn")?.addEventListener("click",fhGeocodeAll);
+  document.querySelectorAll(".tab-btn").forEach(b=>b.addEventListener("click",()=>{
+    if(b.dataset.tab==="map")setTimeout(fhInitMap,80);
+  }));
+});

@@ -10,6 +10,7 @@
   <link rel="apple-touch-icon" href="./icons/icon-192.svg">
   <link rel="stylesheet" href="./style.css">
   <title>FerienhausMatrix</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 </head>
 <body>
   <div class="bg-orb orb-a"></div><div class="bg-orb orb-b"></div>
@@ -36,6 +37,7 @@
     </section>
 
     <nav class="tabs glass">
+      <button class="tab-btn" data-tab="map" type="button">🗺️ Karte</button>
       <button class="tab active" data-tab="overview">Übersicht</button>
       <button class="tab" data-tab="matrix">Bewertungsmatrix</button>
       <button class="tab" data-tab="settings">Einstellungen</button>
@@ -87,7 +89,11 @@
       <button type="button" class="close" id="closeHome">×</button>
       <div class="eyebrow">Ferienhaus</div>
       <h2 id="dialogTitle">Ferienhaus hinzufügen</h2>
-      <label>Name<input id="homeName" required placeholder="z. B. Haus am See"></label><label>Link zum Ferienhaus<input id="homeUrl" type="url" placeholder="https://www.beispiel.de/ferienhaus"></label>
+      <label>Name<input id="homeName" required placeholder="z. B. Haus am See"></label>
+<label>Ort
+  <input id="homeLocation" name="location" type="text" placeholder="z. B. Cuxhaven" autocomplete="address-level2">
+</label>
+<label>Link zum Ferienhaus<input id="homeUrl" type="url" placeholder="https://www.beispiel.de/ferienhaus"></label>
       <div id="homeFields"></div>
       <div class="dialog-actions"><button type="button" id="cancelHome">Abbrechen</button><button class="primary" value="default">Speichern</button></div>
     </form>
@@ -117,5 +123,6 @@
   </template>
 
   <script src="./app.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 </body>
 </html>
