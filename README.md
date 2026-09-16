@@ -51,3 +51,9 @@ Die Karte ist jetzt als eigener Tab eingebaut und aktiviert sich unabhängig von
 ## Version 6 – Ort und Karte
 Im Formular eines Ferienhauses gibt es jetzt ein eigenes Feld **📍 Ort** direkt unter dem Link.
 Der Ort wird pro Ferienhaus gespeichert. Nach dem Speichern wird er automatisch über OpenStreetMap/Nominatim verortet. Alternativ können auf der Karte alle noch nicht verorteten Orte mit „Alle neuen Orte verorten“ verarbeitet werden.
+
+
+## v7 – Ort wieder unter dem Ferienhausnamen
+Der gespeicherte Ort wird in der Übersicht und in den Details direkt unter dem Ferienhausnamen mit einer Stecknadel angezeigt, z. B.:
+Kustpark Texel
+📍 Texel, Niederlande
