@@ -46,3 +46,8 @@ Beim Anlegen oder Bearbeiten kann ein direkter Link zum Anbieter/Ferienhaus gesp
 
 ## Karten-Fix (v5)
 Die Karte ist jetzt als eigener Tab eingebaut und aktiviert sich unabhängig von der bisherigen Tab-Logik. Leaflet wird bei Bedarf nachgeladen. Häuser erscheinen, sobald für sie gültige Koordinaten gespeichert sind.
+
+
+## Version 6 – Ort und Karte
+Im Formular eines Ferienhauses gibt es jetzt ein eigenes Feld **📍 Ort** direkt unter dem Link.
+Der Ort wird pro Ferienhaus gespeichert. Nach dem Speichern wird er automatisch über OpenStreetMap/Nominatim verortet. Alternativ können auf der Karte alle noch nicht verorteten Orte mit „Alle neuen Orte verorten“ verarbeitet werden.
