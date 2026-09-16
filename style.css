@@ -3,3 +3,5 @@
 
 .map-container{min-height:520px;width:100%;border-radius:24px;overflow:hidden;border:1px solid var(--border,rgba(255,255,255,.18));background:#eef2f5}
 @media(max-width:700px){.map-container{min-height:430px;border-radius:18px}}
+
+.home-location,.detail-location{font-size:.9rem;color:var(--muted,#66717e);margin:.2rem 0 .45rem}
