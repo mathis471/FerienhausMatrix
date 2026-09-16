@@ -48,7 +48,7 @@ function score(home){
   return state.criteria.reduce((sum,c)=>sum+points(c,home.values?.[c.id])*(Number(c.weight||0)/totalWeight),0);
 }
 function linkHtml(url){if(!url)return'<span class="muted">Kein Link</span>';let safe=esc(url);return`<a class="house-link" href="${safe}" target="_blank" rel="noopener noreferrer">Zum Ferienhaus ↗</a>`}
-function makePdf(){if(!state.homes.length){alert("Bitte zuerst mindestens ein Ferienhaus anlegen.");return}let rows=[...state.homes].sort((a,b)=>score(b)-score(a));let th=state.criteria.map(c=>`<th>${esc(c.name)}<br><small>${c.weight}%</small></th>`).join("");let body=rows.map((h,i)=>`<tr><td><b>#${i+1}</b><br><strong>${esc(h.name)}</strong><br>${h.url?`<a href="${esc(h.url)}">${esc(h.url)}</a>`:"—"}</td><td>${esc(h.location||"—")}</td>${state.criteria.map(c=>`<td><b>${esc(fmt(c,h.values?.[c.id]))}</b><br><span class="p p-${status(c,h.values?.[c.id])}">${points(c,h.values?.[c.id])} P</span></td>`).join("")}<td class="total"><b>${score(h).toFixed(1)}</b> / 10</td></tr>`).join("");let w=window.open("","_blank");if(!w){alert("Das PDF-Fenster wurde vom Browser blockiert. Bitte Pop-ups für diese Seite erlauben.");return}w.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>FerienhausMatrix – Vergleich</title><style>@page{size:A4 landscape;margin:10mm}body{font-family:Arial,sans-serif;color:#18202b;font-size:9px}h1{font-size:20px;margin:0 0 4px}p{color:#66717e}table{border-collapse:collapse;width:100%}th{background:#eef2f7;text-align:left;font-size:8px;padding:6px;border:1px solid #cfd6df}td{padding:6px;border:1px solid #d8dee6;vertical-align:top}tr:nth-child(even){background:#fafbfc}a{color:#285ea8;text-decoration:none;word-break:break-all;font-size:7px}.p{display:inline-block;margin-top:3px;padding:2px 5px;border-radius:8px;font-weight:700}.p-green{background:#dff5e5}.p-yellow{background:#fff2c7}.p-red,.p-bad{background:#ffe0df}.p-empty{background:#eef1f4;color:#7b8592}.total{font-size:12px;white-space:nowrap}.footer{margin-top:8px;font-size:8px;color:#707b88}</style></head><body><h1>FerienhausMatrix – Vergleich</h1><p>Alle Daten auf einen Blick · Werte und Bewertungspunkte getrennt dargestellt · ${new Date().toLocaleDateString("de-DE")}</p><table><thead><tr><th>Ferienhaus / Link</th><th>Ort</th>${th}<th>Gesamt</th></tr></thead><tbody>${body}</tbody></table><div class="footer">Erstellt mit FerienhausMatrix.</div><script>setTimeout(()=>window.print(),400)</script></body></html>`);w.document.close()}
+function makePdf(){if(!state.homes.length){alert("Bitte zuerst mindestens ein Ferienhaus anlegen.");return}let rows=[...state.homes].sort((a,b)=>score(b)-score(a));let th=state.criteria.map(c=>`<th>${esc(c.name)}<br><small>${c.weight}%</small></th>`).join("");let body=rows.map((h,i)=>`<tr><td><b>#${i+1}</b><br><strong>${esc(h.name)}</strong><br>${h.url?`<a href="${esc(h.url)}">${esc(h.url)}</a>`:"—"}</td>${state.criteria.map(c=>`<td><b>${esc(fmt(c,h.values?.[c.id]))}</b><br><span class="p p-${status(c,h.values?.[c.id])}">${points(c,h.values?.[c.id])} P</span></td>`).join("")}<td class="total"><b>${score(h).toFixed(1)}</b> / 10</td></tr>`).join("");let w=window.open("","_blank");if(!w){alert("Das PDF-Fenster wurde vom Browser blockiert. Bitte Pop-ups für diese Seite erlauben.");return}w.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>FerienhausMatrix – Vergleich</title><style>@page{size:A4 landscape;margin:10mm}body{font-family:Arial,sans-serif;color:#18202b;font-size:9px}h1{font-size:20px;margin:0 0 4px}p{color:#66717e}table{border-collapse:collapse;width:100%}th{background:#eef2f7;text-align:left;font-size:8px;padding:6px;border:1px solid #cfd6df}td{padding:6px;border:1px solid #d8dee6;vertical-align:top}tr:nth-child(even){background:#fafbfc}a{color:#285ea8;text-decoration:none;word-break:break-all;font-size:7px}.p{display:inline-block;margin-top:3px;padding:2px 5px;border-radius:8px;font-weight:700}.p-green{background:#dff5e5}.p-yellow{background:#fff2c7}.p-red,.p-bad{background:#ffe0df}.p-empty{background:#eef1f4;color:#7b8592}.total{font-size:12px;white-space:nowrap}.footer{margin-top:8px;font-size:8px;color:#707b88}</style></head><body><h1>FerienhausMatrix – Vergleich</h1><p>Alle Daten auf einen Blick · Werte und Bewertungspunkte getrennt dargestellt · ${new Date().toLocaleDateString("de-DE")}</p><table><thead><tr><th>Ferienhaus / Link</th>${th}<th>Gesamt</th></tr></thead><tbody>${body}</tbody></table><div class="footer">Erstellt mit FerienhausMatrix.</div><script>setTimeout(()=>window.print(),400)</script></body></html>`);w.document.close()}
 function renderAll(){renderOverview();renderCriteria();document.getElementById("homeCount").textContent=state.homes.length;}
 function renderOverview(){
   const grid=document.getElementById("homeGrid"), q=document.getElementById("searchInput").value.toLowerCase();
@@ -59,7 +59,7 @@ function renderOverview(){
   grid.innerHTML=homes.map((h,i)=>{
     const sc=score(h), rank=i+1;
     const rows=state.criteria.slice(0,6).map(c=>`<div class="mini-row"><span>${esc(c.name)}</span><strong class="traffic ${status(c,h.values?.[c.id])}">${esc(fmt(c,h.values?.[c.id]))}</strong></div>`).join("");
-    return `<article class="home-card glass"><div class="rank">#${rank}</div><div class="card-head"><div><h3>${esc(h.name)}</h3><div class="home-location">📍 ${esc(h.location||"Kein Ort eingetragen")}</div>${linkHtml(h.url)}<span class="muted">Gesamtwertung</span></div><div class="score">${sc.toFixed(1)}<small>/10</small></div></div><div class="mini-list">${rows}</div><div class="card-actions"><button onclick="openDetail('${h.id}')">Details</button><button onclick="editHome('${h.id}')">Bearbeiten</button><button class="danger" onclick="deleteHome('${h.id}')">Löschen</button></div></article>`;
+    return `<article class="home-card glass"><div class="rank">#${rank}</div><div class="card-head"><div><h3>${esc(h.name)}</h3>${linkHtml(h.url)}<span class="muted">Gesamtwertung</span></div><div class="score">${sc.toFixed(1)}<small>/10</small></div></div><div class="mini-list">${rows}</div><div class="card-actions"><button onclick="openDetail('${h.id}')">Details</button><button onclick="editHome('${h.id}')">Bearbeiten</button><button class="danger" onclick="deleteHome('${h.id}')">Löschen</button></div></article>`;
   }).join("");
 }
 function renderCriteria(){
@@ -89,7 +89,7 @@ function renderCriteria(){
 function openHome(id=null){
   editingHomeId=id; const h=id?state.homes.find(x=>x.id===id):null;
   document.getElementById("dialogTitle").textContent=id?"Ferienhaus bearbeiten":"Ferienhaus hinzufügen";
-  document.getElementById("homeName").value=h?.name||"";document.getElementById("homeLocation").value=h?.location||"";document.getElementById("homeUrl").value=h?.url||"";
+  document.getElementById("homeName").value=h?.name||"";document.getElementById("homeUrl").value=h?.url||"";
   document.getElementById("homeFields").innerHTML=state.criteria.map(c=>{
     const val=h?.values?.[c.id]??"";
     if(c.type==="boolean") return `<label>${esc(c.name)}<select data-cid="${c.id}"><option value="">—</option><option value="1" ${Number(val)===1?"selected":""}>Ja</option><option value="0" ${val!==""&&Number(val)===0?"selected":""}>Nein</option></select></label>`;
@@ -102,22 +102,13 @@ function saveHome(e){
   e.preventDefault();
   const name=document.getElementById("homeName").value.trim(); if(!name)return; let url=document.getElementById("homeUrl").value.trim(); if(url&&!/^https?:\/\//i.test(url))url="https://"+url;
   const values={};document.querySelectorAll("#homeFields [data-cid]").forEach(x=>{if(x.value!=="")values[x.dataset.cid]=x.value;});
-  let savedHome;
-  const location=document.getElementById("homeLocation").value.trim();
-  if(editingHomeId){
-    const h=state.homes.find(x=>x.id===editingHomeId);
-    h.name=name; h.location=location; h.url=url; h.values=values;
-    if(h._geocodedLocation!==location) delete h.coordinates;
-    savedHome=h;
-  } else {
-    savedHome={id:uid(),name,location,url,values};
-    state.homes.push(savedHome);
-  }
-  document.getElementById("homeDialog").close();save();geocodeHome(savedHome);
+  if(editingHomeId){const h=state.homes.find(x=>x.id===editingHomeId);h.name=name;h.url=url;h.values=values;}
+  else state.homes.push({id:uid(),name,url,values});
+  document.getElementById("homeDialog").close();save();
 }
 function openDetail(id){
   const h=state.homes.find(x=>x.id===id);if(!h)return;
-  document.getElementById("detailContent").innerHTML=`<div class="eyebrow">Bewertung</div><h2>${esc(h.name)}</h2><p class="detail-location">📍 ${esc(h.location||"Kein Ort eingetragen")}</p>${linkHtml(h.url)}<div class="detail-score">${score(h).toFixed(1)}<small>/10</small></div><div class="detail-table">${state.criteria.map(c=>`<div class="detail-row"><div><strong>${esc(c.name)}</strong><span>${c.weight}% Gewichtung</span></div><div class="actual">${esc(fmt(c,h.values?.[c.id]))}</div><div class="points traffic ${status(c,h.values?.[c.id])}">${points(c,h.values?.[c.id]).toFixed(0)} Punkte</div></div>`).join("")}</div>`;
+  document.getElementById("detailContent").innerHTML=`<div class="eyebrow">Bewertung</div><h2>${esc(h.name)}</h2>${linkHtml(h.url)}<div class="detail-score">${score(h).toFixed(1)}<small>/10</small></div><div class="detail-table">${state.criteria.map(c=>`<div class="detail-row"><div><strong>${esc(c.name)}</strong><span>${c.weight}% Gewichtung</span></div><div class="actual">${esc(fmt(c,h.values?.[c.id]))}</div><div class="points traffic ${status(c,h.values?.[c.id])}">${points(c,h.values?.[c.id]).toFixed(0)} Punkte</div></div>`).join("")}</div>`;
   document.getElementById("detailDialog").showModal();
 }
 function deleteHome(id){if(confirm("Ferienhaus wirklich löschen?")){state.homes=state.homes.filter(h=>h.id!==id);save();}}
@@ -149,79 +140,112 @@ window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredIns
 document.getElementById("installBtn").onclick=async()=>{if(deferredInstallPrompt){await deferredInstallPrompt.prompt();deferredInstallPrompt=null;document.getElementById("installBtn").classList.add("hidden");}};
 if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost")) navigator.serviceWorker.register("./sw.js").catch(console.warn);
 renderAll();
+/* FERienhausMatrix map fix */
+(function () {
+  const MAP_MARKER = "/* FERienhausMatrix map fix */";
+  let mapInstance = null;
+  let mapMarkers = [];
 
-/* v4: funktionierende Karte und eindeutig gespeicherter Ort je Ferienhaus */
-const FH_CACHE_KEY="ferienhausmatrix-geocache-v4";
-let fhMap=null, fhMarkers=[];
+  function stateObj() {
+    try { return JSON.parse(localStorage.getItem("ferienhausmatrix-v2") || localStorage.getItem("ferienhaus-app-v1") || "{}"); }
+    catch(e) { return {}; }
+  }
+  function getHomes() {
+    const s = window.state || stateObj();
+    return Array.isArray(s.homes) ? s.homes : [];
+  }
+  function escHtml(v) {
+    return String(v ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function setStatus(t) {
+    const el = document.getElementById("mapStatus");
+    if (el) el.textContent = t || "";
+  }
 
-function geoCache(){try{return JSON.parse(localStorage.getItem(FH_CACHE_KEY)||"{}")}catch(e){return {}}}
-function saveGeoCache(c){localStorage.setItem(FH_CACHE_KEY,JSON.stringify(c))}
-function homeLocation(h){return (h.location||"").trim()}
-
-async function geocodeHome(h){
-  const loc=homeLocation(h); if(!loc) return;
-  const key=loc.toLowerCase(), cache=geoCache();
-  try{
-    let p=cache[key];
-    if(!p){
-      const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=de&q="+encodeURIComponent(loc));
-      if(!r.ok) throw new Error("Geocoding fehlgeschlagen");
-      const d=await r.json();
-      if(!d.length) throw new Error("Ort nicht gefunden");
-      p={lat:Number(d[0].lat),lon:Number(d[0].lon),display:d[0].display_name||loc};
-      cache[key]=p; saveGeoCache(cache);
+  function ensureLeaflet(cb) {
+    if (window.L) return cb();
+    if (!document.getElementById("leaflet-css")) {
+      const css = document.createElement("link");
+      css.id = "leaflet-css";
+      css.rel = "stylesheet";
+      css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(css);
     }
-    h.coordinates=p; h._geocodedLocation=loc;
-    localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
-    if(fhMap) renderMap();
-  }catch(e){
-    const s=document.getElementById("mapStatus");
-    if(s) s.textContent=`${h.name}: ${e.message}`;
+    const s = document.createElement("script");
+    s.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    s.onload = cb;
+    s.onerror = () => setStatus("Die Kartenbibliothek konnte nicht geladen werden. Bitte Internetverbindung prüfen.");
+    document.head.appendChild(s);
   }
-}
 
-async function geocodeAll(){
-  const btn=document.getElementById("geocodeAllBtn"), s=document.getElementById("mapStatus");
-  const homes=state.homes.filter(h=>homeLocation(h)&&(!h.coordinates||h._geocodedLocation!==homeLocation(h)));
-  if(!homes.length){s.textContent="Alle eingetragenen Orte sind bereits verortet.";renderMap();return}
-  btn.disabled=true;
-  for(let i=0;i<homes.length;i++){
-    s.textContent=`Verorte ${homes[i].name} (${i+1}/${homes.length}) …`;
-    await geocodeHome(homes[i]);
-    if(i<homes.length-1) await new Promise(r=>setTimeout(r,1100));
-  }
-  btn.disabled=false; s.textContent="Verortung abgeschlossen."; renderMap();
-}
+  function renderMap() {
+    const canvas = document.getElementById("mapCanvas");
+    if (!canvas) return;
+    ensureLeaflet(() => {
+      if (!mapInstance) {
+        mapInstance = L.map(canvas).setView([53.14, 8.21], 8);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap-Mitwirkende'
+        }).addTo(mapInstance);
+      }
+      mapMarkers.forEach(m => m.remove());
+      mapMarkers = [];
 
-function initMap(){
-  const el=document.getElementById("mapCanvas"), s=document.getElementById("mapStatus");
-  if(!el||typeof L==="undefined"){if(s)s.textContent="Karte konnte nicht geladen werden. Bitte Internetverbindung prüfen.";return}
-  if(!fhMap){
-    fhMap=L.map(el).setView([51.2,10.4],6);
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(fhMap);
+      const homes = getHomes();
+      const points = [];
+      for (const h of homes) {
+        const lat = Number(h.lat ?? h.latitude ?? h.coordinates?.lat);
+        const lon = Number(h.lon ?? h.lng ?? h.longitude ?? h.coordinates?.lon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+        const popup = `<strong>${escHtml(h.name || "Ferienhaus")}</strong><br>${escHtml(h.location || "")}` +
+          (h.homeUrl ? `<br><a href="${escHtml(h.homeUrl)}" target="_blank" rel="noopener">Zum Ferienhaus</a>` : "");
+        const mk = L.marker([lat, lon]).addTo(mapInstance).bindPopup(popup);
+        mapMarkers.push(mk);
+        points.push([lat, lon]);
+      }
+      if (points.length) {
+        mapInstance.fitBounds(points, {padding:[30,30], maxZoom: 13});
+        setStatus(`${points.length} Ferienhaus${points.length === 1 ? "" : "häuser"} auf der Karte.`);
+      } else {
+        setStatus("Noch keine Ferienhäuser mit Koordinaten vorhanden. Bitte zuerst bei den Häusern ein Ort eingeben und speichern.");
+      }
+      setTimeout(() => mapInstance.invalidateSize(), 100);
+    });
   }
-  setTimeout(()=>fhMap.invalidateSize(),100); renderMap();
-}
-function renderMap(){
-  if(!fhMap)return;
-  fhMarkers.forEach(m=>fhMap.removeLayer(m)); fhMarkers=[];
-  const bounds=[];
-  state.homes.forEach(h=>{
-    const g=h.coordinates;
-    if(!g||!Number.isFinite(+g.lat)||!Number.isFinite(+g.lon))return;
-    const m=L.marker([+g.lat,+g.lon]).addTo(fhMap);
-    const link=h.url?`<br><a href="${esc(h.url)}" target="_blank" rel="noopener">Zum Ferienhaus ↗</a>`:"";
-    m.bindPopup(`<strong>${esc(h.name)}</strong><br>📍 ${esc(homeLocation(h))}${link}`);
-    fhMarkers.push(m); bounds.push([+g.lat,+g.lon]);
+
+  function isMapPanel() {
+    const p = document.getElementById("map");
+    return p && !p.hidden;
+  }
+
+  function activateMap() {
+    const panel = document.getElementById("map");
+    if (!panel) return;
+    panel.hidden = false;
+    renderMap();
+  }
+
+  document.addEventListener("click", e => {
+    const tab = e.target.closest('[data-tab="map"], #mapTab, .tab-map');
+    if (!tab) return;
+    e.preventDefault();
+    // Hide panels and activate map without relying on existing tab implementation.
+    document.querySelectorAll("[data-panel]").forEach(p => p.hidden = true);
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    activateMap();
   });
-  const missing=state.homes.filter(h=>homeLocation(h)&&(!h.coordinates||h._geocodedLocation!==homeLocation(h)));
-  document.getElementById("mapStatus").textContent=bounds.length?`${bounds.length} Ferienhaus/Ferienhäuser auf der Karte.`:"Noch keine Ferienhäuser verortet.";
-  document.getElementById("unmappedHomes").textContent=missing.length?"Noch zu verorten: "+missing.map(h=>h.name).join(", "):"";
-  if(bounds.length===1)fhMap.setView(bounds[0],10);
-  else if(bounds.length>1)fhMap.fitBounds(bounds,{padding:[30,30]});
-}
 
-document.getElementById("geocodeAllBtn")?.addEventListener("click",geocodeAll);
-document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>{
-  if(btn.dataset.tab==="map")setTimeout(initMap,120);
-}));
+  document.addEventListener("DOMContentLoaded", () => {
+    const panel = document.getElementById("map");
+    if (panel) panel.hidden = true;
+    const btn = document.getElementById("geocodeAllBtn");
+    if (btn) btn.addEventListener("click", () => {
+      if (typeof window.geocodeAllHomes === "function") window.geocodeAllHomes();
+      else setStatus("Bitte bei jedem Haus zuerst einen Ort speichern.");
+    });
+  });
+
+  window.renderFerienhausMap = renderMap;
+})();

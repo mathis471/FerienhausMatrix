@@ -44,7 +44,5 @@ Beim Anlegen oder Bearbeiten kann ein direkter Link zum Anbieter/Ferienhaus gesp
 Über **PDF erstellen** wird eine druckoptimierte A4-Querformat-Tabelle mit allen Ferienhäusern, Links, tatsächlichen Werten, Punkten und Gesamtwertung geöffnet. Im Druckdialog **„Als PDF speichern“** wählen. Auf Smartphones kann die PDF anschließend über die Teilen-Funktion, z. B. WhatsApp, verschickt werden.
 
 
-### Karte und Ort
-Die App enthält jetzt einen **separaten Tab „Karte“** und pro Ferienhaus das Feld **„Ort“**. Über „Alle neuen Orte verorten“ werden die Orte einzeln geocodiert und lokal zwischengespeichert. Bei Eingabe nur eines Ortsnamens liegt der Marker am geocodierten Ort, nicht zwingend an der exakten Unterkunft.
-
-Für Karte und Verortung ist eine Internetverbindung erforderlich. Die Kartenansicht verwendet OpenStreetMap mit sichtbarer Attribution.
+## Karten-Fix (v5)
+Die Karte ist jetzt als eigener Tab eingebaut und aktiviert sich unabhängig von der bisherigen Tab-Logik. Leaflet wird bei Bedarf nachgeladen. Häuser erscheinen, sobald für sie gültige Koordinaten gespeichert sind.
