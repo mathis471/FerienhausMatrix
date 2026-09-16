@@ -43,7 +43,7 @@
 
     <section id="overview" class="tab-panel active">
       <div class="toolbar glass">
-        <button id="addHomeBtn" class="primary">+ Ferienhaus hinzufügen</button>
+        <button id="addHomeBtn" class="primary">+ Ferienhaus hinzufügen</button><button id="pdfBtn" class="pdf">PDF erstellen</button>
         <input id="searchInput" type="search" placeholder="Ferienhaus suchen …">
         <select id="sortSelect">
           <option value="score">Nach Gesamtwertung</option>
@@ -87,7 +87,7 @@
       <button type="button" class="close" id="closeHome">×</button>
       <div class="eyebrow">Ferienhaus</div>
       <h2 id="dialogTitle">Ferienhaus hinzufügen</h2>
-      <label>Name<input id="homeName" required placeholder="z. B. Haus am See"></label>
+      <label>Name<input id="homeName" required placeholder="z. B. Haus am See"></label><label>Link zum Ferienhaus<input id="homeUrl" type="url" placeholder="https://www.beispiel.de/ferienhaus"></label>
       <div id="homeFields"></div>
       <div class="dialog-actions"><button type="button" id="cancelHome">Abbrechen</button><button class="primary" value="default">Speichern</button></div>
     </form>

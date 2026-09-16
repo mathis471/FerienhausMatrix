@@ -35,3 +35,10 @@ Fahrtzeit wird intern in Minuten eingegeben, z. B. `165` für `2:45 h`.
 
 ## Daten
 Alle Ferienhausdaten liegen im Local Storage dieses Browsers. Vor dem Löschen von Browserdaten unbedingt ein Backup exportieren.
+
+
+## Link zum Ferienhaus
+Beim Anlegen oder Bearbeiten kann ein direkter Link zum Anbieter/Ferienhaus gespeichert werden. Er erscheint in der Karte und Detailansicht und wird im Backup gespeichert.
+
+## PDF-Vergleich
+Über **PDF erstellen** wird eine druckoptimierte A4-Querformat-Tabelle mit allen Ferienhäusern, Links, tatsächlichen Werten, Punkten und Gesamtwertung geöffnet. Im Druckdialog **„Als PDF speichern“** wählen. Auf Smartphones kann die PDF anschließend über die Teilen-Funktion, z. B. WhatsApp, verschickt werden.

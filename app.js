@@ -47,6 +47,8 @@ function score(home){
   if(!totalWeight) return 0;
   return state.criteria.reduce((sum,c)=>sum+points(c,home.values?.[c.id])*(Number(c.weight||0)/totalWeight),0);
 }
+function linkHtml(url){if(!url)return'<span class="muted">Kein Link</span>';let safe=esc(url);return`<a class="house-link" href="${safe}" target="_blank" rel="noopener noreferrer">Zum Ferienhaus ↗</a>`}
+function makePdf(){if(!state.homes.length){alert("Bitte zuerst mindestens ein Ferienhaus anlegen.");return}let rows=[...state.homes].sort((a,b)=>score(b)-score(a));let th=state.criteria.map(c=>`<th>${esc(c.name)}<br><small>${c.weight}%</small></th>`).join("");let body=rows.map((h,i)=>`<tr><td><b>#${i+1}</b><br><strong>${esc(h.name)}</strong><br>${h.url?`<a href="${esc(h.url)}">${esc(h.url)}</a>`:"—"}</td>${state.criteria.map(c=>`<td><b>${esc(fmt(c,h.values?.[c.id]))}</b><br><span class="p p-${status(c,h.values?.[c.id])}">${points(c,h.values?.[c.id])} P</span></td>`).join("")}<td class="total"><b>${score(h).toFixed(1)}</b> / 10</td></tr>`).join("");let w=window.open("","_blank");if(!w){alert("Das PDF-Fenster wurde vom Browser blockiert. Bitte Pop-ups für diese Seite erlauben.");return}w.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>FerienhausMatrix – Vergleich</title><style>@page{size:A4 landscape;margin:10mm}body{font-family:Arial,sans-serif;color:#18202b;font-size:9px}h1{font-size:20px;margin:0 0 4px}p{color:#66717e}table{border-collapse:collapse;width:100%}th{background:#eef2f7;text-align:left;font-size:8px;padding:6px;border:1px solid #cfd6df}td{padding:6px;border:1px solid #d8dee6;vertical-align:top}tr:nth-child(even){background:#fafbfc}a{color:#285ea8;text-decoration:none;word-break:break-all;font-size:7px}.p{display:inline-block;margin-top:3px;padding:2px 5px;border-radius:8px;font-weight:700}.p-green{background:#dff5e5}.p-yellow{background:#fff2c7}.p-red,.p-bad{background:#ffe0df}.p-empty{background:#eef1f4;color:#7b8592}.total{font-size:12px;white-space:nowrap}.footer{margin-top:8px;font-size:8px;color:#707b88}</style></head><body><h1>FerienhausMatrix – Vergleich</h1><p>Alle Daten auf einen Blick · Werte und Bewertungspunkte getrennt dargestellt · ${new Date().toLocaleDateString("de-DE")}</p><table><thead><tr><th>Ferienhaus / Link</th>${th}<th>Gesamt</th></tr></thead><tbody>${body}</tbody></table><div class="footer">Erstellt mit FerienhausMatrix.</div><script>setTimeout(()=>window.print(),400)</script></body></html>`);w.document.close()}
 function renderAll(){renderOverview();renderCriteria();document.getElementById("homeCount").textContent=state.homes.length;}
 function renderOverview(){
   const grid=document.getElementById("homeGrid"), q=document.getElementById("searchInput").value.toLowerCase();
@@ -57,7 +59,7 @@ function renderOverview(){
   grid.innerHTML=homes.map((h,i)=>{
     const sc=score(h), rank=i+1;
     const rows=state.criteria.slice(0,6).map(c=>`<div class="mini-row"><span>${esc(c.name)}</span><strong class="traffic ${status(c,h.values?.[c.id])}">${esc(fmt(c,h.values?.[c.id]))}</strong></div>`).join("");
-    return `<article class="home-card glass"><div class="rank">#${rank}</div><div class="card-head"><div><h3>${esc(h.name)}</h3><span class="muted">Gesamtwertung</span></div><div class="score">${sc.toFixed(1)}<small>/10</small></div></div><div class="mini-list">${rows}</div><div class="card-actions"><button onclick="openDetail('${h.id}')">Details</button><button onclick="editHome('${h.id}')">Bearbeiten</button><button class="danger" onclick="deleteHome('${h.id}')">Löschen</button></div></article>`;
+    return `<article class="home-card glass"><div class="rank">#${rank}</div><div class="card-head"><div><h3>${esc(h.name)}</h3>${linkHtml(h.url)}<span class="muted">Gesamtwertung</span></div><div class="score">${sc.toFixed(1)}<small>/10</small></div></div><div class="mini-list">${rows}</div><div class="card-actions"><button onclick="openDetail('${h.id}')">Details</button><button onclick="editHome('${h.id}')">Bearbeiten</button><button class="danger" onclick="deleteHome('${h.id}')">Löschen</button></div></article>`;
   }).join("");
 }
 function renderCriteria(){
@@ -87,7 +89,7 @@ function renderCriteria(){
 function openHome(id=null){
   editingHomeId=id; const h=id?state.homes.find(x=>x.id===id):null;
   document.getElementById("dialogTitle").textContent=id?"Ferienhaus bearbeiten":"Ferienhaus hinzufügen";
-  document.getElementById("homeName").value=h?.name||"";
+  document.getElementById("homeName").value=h?.name||"";document.getElementById("homeUrl").value=h?.url||"";
   document.getElementById("homeFields").innerHTML=state.criteria.map(c=>{
     const val=h?.values?.[c.id]??"";
     if(c.type==="boolean") return `<label>${esc(c.name)}<select data-cid="${c.id}"><option value="">—</option><option value="1" ${Number(val)===1?"selected":""}>Ja</option><option value="0" ${val!==""&&Number(val)===0?"selected":""}>Nein</option></select></label>`;
@@ -98,15 +100,15 @@ function openHome(id=null){
 }
 function saveHome(e){
   e.preventDefault();
-  const name=document.getElementById("homeName").value.trim(); if(!name)return;
+  const name=document.getElementById("homeName").value.trim(); if(!name)return; let url=document.getElementById("homeUrl").value.trim(); if(url&&!/^https?:\/\//i.test(url))url="https://"+url;
   const values={};document.querySelectorAll("#homeFields [data-cid]").forEach(x=>{if(x.value!=="")values[x.dataset.cid]=x.value;});
-  if(editingHomeId){const h=state.homes.find(x=>x.id===editingHomeId);h.name=name;h.values=values;}
-  else state.homes.push({id:uid(),name,values});
+  if(editingHomeId){const h=state.homes.find(x=>x.id===editingHomeId);h.name=name;h.url=url;h.values=values;}
+  else state.homes.push({id:uid(),name,url,values});
   document.getElementById("homeDialog").close();save();
 }
 function openDetail(id){
   const h=state.homes.find(x=>x.id===id);if(!h)return;
-  document.getElementById("detailContent").innerHTML=`<div class="eyebrow">Bewertung</div><h2>${esc(h.name)}</h2><div class="detail-score">${score(h).toFixed(1)}<small>/10</small></div><div class="detail-table">${state.criteria.map(c=>`<div class="detail-row"><div><strong>${esc(c.name)}</strong><span>${c.weight}% Gewichtung</span></div><div class="actual">${esc(fmt(c,h.values?.[c.id]))}</div><div class="points traffic ${status(c,h.values?.[c.id])}">${points(c,h.values?.[c.id]).toFixed(0)} Punkte</div></div>`).join("")}</div>`;
+  document.getElementById("detailContent").innerHTML=`<div class="eyebrow">Bewertung</div><h2>${esc(h.name)}</h2>${linkHtml(h.url)}<div class="detail-score">${score(h).toFixed(1)}<small>/10</small></div><div class="detail-table">${state.criteria.map(c=>`<div class="detail-row"><div><strong>${esc(c.name)}</strong><span>${c.weight}% Gewichtung</span></div><div class="actual">${esc(fmt(c,h.values?.[c.id]))}</div><div class="points traffic ${status(c,h.values?.[c.id])}">${points(c,h.values?.[c.id]).toFixed(0)} Punkte</div></div>`).join("")}</div>`;
   document.getElementById("detailDialog").showModal();
 }
 function deleteHome(id){if(confirm("Ferienhaus wirklich löschen?")){state.homes=state.homes.filter(h=>h.id!==id);save();}}
@@ -121,7 +123,7 @@ function importData(file){
     else if(Array.isArray(d.homes)){state.criteria=d.criteria;state.homes=d.homes;}
     else throw Error();save();alert("Import erfolgreich.");}catch(e){alert("Die Datei konnte nicht importiert werden.");}};r.readAsText(file);
 }
-document.getElementById("addHomeBtn").onclick=()=>openHome();
+document.getElementById("addHomeBtn").onclick=()=>openHome();document.getElementById("pdfBtn").onclick=makePdf;
 document.getElementById("homeForm").addEventListener("submit",saveHome);
 document.getElementById("cancelHome").onclick=()=>document.getElementById("homeDialog").close();
 document.getElementById("closeHome").onclick=()=>document.getElementById("homeDialog").close();
